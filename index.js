@@ -1,68 +1,97 @@
 import inquirer from 'inquirer';
 
-// 1. Importamos las funciones de cada ejercicio
-import { ejecutarEjercicio1 } from './ejercicio1.js';
-import { ejecutarEjercicio2 } from './ejercicio2.js';
-import { ejecutarEjercicio3 } from './ejercicio3.js';
-import { ejecutarEjercicio4 } from './ejercicio4.js';
-import { ejecutarEjercicio5 } from './ejercicio5.js';
-import { ejecutarEjercicio6 } from './ejercicio6.js';
+const menuPrincipal = [
+  {
+    type: 'select',
+    name: 'nivelSeleccionado',
+    message: 'Seleccione el nivel de los ejercicios que desea revisar:',
+    choices: [
+      { name: '1. Nivel Bajo (Ejercicios 1 al 6)', value: 'BAJO' },
+      { name: '2. Nivel Medio (Ejercicios 7 al 12)', value: 'MEDIO' },
+      { name: 'Salir del programa', value: 'SALIR' }
+    ]
+  }
+];
 
-function mostrarMenu() {
-  console.log("\n=========================================");
-  console.log(" MENÚ INTERACTIVO DE EJERCICIOS RIWI CODER");
-  console.log("=========================================\n");
+const menuBajo = [
+  {
+    type: 'select',
+    name: 'ejercicioSeleccionado',
+    message: 'NIVEL BAJO - Seleccione un ejercicio para ejecutar:',
+    choices: [
+      { name: 'Ejercicio 1: Control de temperatura', value: '1' },
+      { name: 'Ejercicio 2: Tarifas de parqueadero (Riwi)', value: '2' },
+      { name: 'Ejercicio 3: Cuenta regresiva de lanzamiento', value: '3' },
+      { name: 'Ejercicio 4: Juego de FizzBuzz (RiwiCoder)', value: '4' },
+      { name: 'Ejercicio 5: Adivina el número secreto (1-20)', value: '5' },
+      { name: 'Ejercicio 6: Validador de contraseñas seguras', value: '6' },
+      { name: '<< Volver al Menú Principal', value: 'VOLVER' }
+    ]
+  }
+];
 
-  inquirer
-    .prompt([
-      {
-        type: 'select', // Cambiado de 'list' a 'select' para compatibilidad con tu versión
-        name: 'opcion',
-        message: '¿Qué ejercicio deseas ejecutar hoy?',
-        choices: [
-          { name: '1. Validador de Temperatura', value: 'j1' },
-          { name: '2. Calcular Tarifa Parqueadero (Riwi Coder)', value: 'j2' },
-          { name: '3. Cuenta Regresiva', value: 'j3' },
-          { name: '4. FizzBuzz (RiwiCoder)', value: 'j4' },
-          { name: '5. Juego del Número Secreto', value: 'j5' },
-          { name: '6. Validador de Contraseñas Seguras', value: 'j6' },
-          { name: 'Salir del menú', value: 'salir' }
-        ]
-      }
-    ])
+function iniciarApp() {
+  inquirer.prompt(menuPrincipal)
     .then((answers) => {
-      switch (answers.opcion) {
-        case 'j1':
-          ejecutarEjercicio1();
+      switch (answers.nivelSeleccionado) {
+        case 'BAJO':
+          manejarSubmenu(menuBajo, 'nivel bajo');
           break;
-        case 'j2':
-          ejecutarEjercicio2();
-          break;
-        case 'j3':
-          ejecutarEjercicio3();
-          break;
-        case 'j4':
-          ejecutarEjercicio4();
-          break;
-        case 'j5':
-          ejecutarEjercicio5();
-          break;
-        case 'j6':
-          ejecutarEjercicio6();
-          break;
-        case 'salir':
-          console.log("¡Sigue codeando! Hasta la próxima.");
+        case 'SALIR':
           process.exit(0);
-        default:
-          console.log("Opción no válida.");
-          break;
       }
     })
-    .catch((error) => {
-      console.error("Ocurrió un error en el menú:", error);
-    });
+    .catch((error) => console.error('Error en el menú principal:', error));
 }
 
-// Arrancamos el menú principal
-mostrarMenu();
+async function manejarSubmenu(estructuraMenu, nombreCarpeta) {
+  try {
+    const answers = await inquirer.prompt(estructuraMenu);
+    const numeroEjercicio = answers.ejercicioSeleccionado;
 
+    if (numeroEjercicio === 'VOLVER') {
+      console.clear();
+      iniciarApp();
+      return;
+    }
+
+    console.clear();
+    const rutaArchivo = `./${nombreCarpeta}/ejercicio${numeroEjercicio}.js`;
+    
+    try {
+      const modulo = await import(rutaArchivo);
+      const nombreFuncion = `ejecutarEjercicio${numeroEjercicio}`;
+      
+      if (modulo[nombreFuncion]) {
+        // LINEA CLAVE: El await obliga a esperar que el ejercicio termine al 100%
+        await modulo[nombreFuncion]();
+      }
+    } catch (err) {
+      console.log(`❌ Error al cargar el archivo o ejecucion.`);
+    }
+
+    // Al terminar por completo el ejercicio, entra esta pregunta de forma limpia
+    console.log('\n----------------------------------------');
+    const respuestaSalida = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'regresar',
+        message: '¿Deseas regresar al menú de selección?',
+        default: true
+      }
+    ]);
+
+    console.clear();
+    if (respuestaSalida.regresar) {
+      iniciarApp();
+    } else {
+      process.exit(0);
+    }
+
+  } catch (error) {
+    console.error('Error en el submenú:', error);
+  }
+}
+
+console.clear();
+iniciarApp();
